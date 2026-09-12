@@ -1,0 +1,178 @@
+/*
+ * Sprite geometry:
+ * - sprite-sheet-forward-only.png: 1676x802, 4 cols x 1 row (4-frame forward
+ *   walk cycle), native frame 419x802.
+ * - sprite-sheet-props-only.png / sprite-sheet-robot-with-props.png:
+ *   3440x802, 6 uniform cols x 1 row (frame-aligned 1:1 between the two
+ *   sheets, equal-width cells so there's no cross-frame bleed), native frame
+ *   573.333x802.
+ *
+ * All three sheets share the same native frame HEIGHT (802) and the robot's
+ * actual pixel scale, so a single shared DISPLAY_SCALE (0.2) applied
+ * uniformly keeps the character the same apparent size AND the same
+ * feet-on-the-ground baseline whether walking or "arrived".
+ *
+ * Timeline (78s total, all animations start together after a shared 20s
+ * animation-delay so the footer sits idle for 20s on page load before the
+ * first walk begins):
+ * - Walking segments (intro, the 5 between-stop walks, outro) are each
+ *   1.08s of real time — unchanged from before, so the walking *speed*
+ *   (distance/time) is identical to the previous design.
+ * - Each dwell-at-a-prop segment is 11.26s (the original ~1.26s plus a
+ *   requested +10s pause before it transitions back to walking).
+ * - A final 2.88s off-screen rest (invisible) before the 78s cycle repeats.
+ * 7*1.08 (walks) + 6*11.26 (dwells) + 2.88 (rest) = 78.00s exactly.
+ *
+ * Three independent animations run on the walking robot (each targets a
+ * different CSS property, so they layer without conflict):
+ * - walkPosition: smooth (linear) left-position keyframes, holding flat
+ *   during each dwell-at-a-prop window.
+ * - walkVisibility: steps(1,end) opacity toggle, hidden exactly during each
+ *   dwell (the prop slot itself shows the assembled "robot + prop" instead).
+ * - legCycle: steps(1,end) background-position stepping through the 4-frame
+ *   walk cycle on a short, independent loop (irrelevant that it keeps
+ *   cycling while hidden during a dwell).
+ *
+ * Each of the 6 prop slots gets its own steps(1,end) keyframes toggling
+ * background-image between the plain prop and the "robot wearing it" frame,
+ * timed to match the walking robot's arrival/departure at that slot.
+ *
+ * All animations use animation-fill-mode: backwards so that during the
+ * initial 20s delay (before anything has actually started), each element
+ * already shows its correct "at rest" look (walking robot off-screen and
+ * hidden, prop slots showing the plain prop) instead of an unstyled flash.
+ */
+
+.track {
+  position: relative;
+  height: 161px;
+  width: 100%;
+  max-width: 72rem;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.propSlot {
+  position: absolute;
+  bottom: 0;
+  width: 114.67px;
+  height: 160.4px;
+  background-repeat: no-repeat;
+  background-size: 688px 160.4px;
+  transform: translateX(-50%);
+}
+
+.slot0 { left: 10%; background-position-x: 0px; animation: propSwap0 78s steps(1, end) 20s infinite backwards; }
+.slot1 { left: 26%; background-position-x: -114.67px; animation: propSwap1 78s steps(1, end) 20s infinite backwards; }
+.slot2 { left: 42%; background-position-x: -229.33px; animation: propSwap2 78s steps(1, end) 20s infinite backwards; }
+.slot3 { left: 58%; background-position-x: -344px; animation: propSwap3 78s steps(1, end) 20s infinite backwards; }
+.slot4 { left: 74%; background-position-x: -458.67px; animation: propSwap4 78s steps(1, end) 20s infinite backwards; }
+.slot5 { left: 90%; background-position-x: -573.33px; animation: propSwap5 78s steps(1, end) 20s infinite backwards; }
+
+@keyframes propSwap0 {
+  0% { background-image: url(/assets/robot/sprite-sheet-props-only.png); }
+  1.3846% { background-image: url(/assets/robot/sprite-sheet-robot-with-props.png); }
+  15.8205% { background-image: url(/assets/robot/sprite-sheet-props-only.png); }
+}
+@keyframes propSwap1 {
+  0% { background-image: url(/assets/robot/sprite-sheet-props-only.png); }
+  17.2051% { background-image: url(/assets/robot/sprite-sheet-robot-with-props.png); }
+  31.6410% { background-image: url(/assets/robot/sprite-sheet-props-only.png); }
+}
+@keyframes propSwap2 {
+  0% { background-image: url(/assets/robot/sprite-sheet-props-only.png); }
+  33.0256% { background-image: url(/assets/robot/sprite-sheet-robot-with-props.png); }
+  47.4615% { background-image: url(/assets/robot/sprite-sheet-props-only.png); }
+}
+@keyframes propSwap3 {
+  0% { background-image: url(/assets/robot/sprite-sheet-props-only.png); }
+  48.8462% { background-image: url(/assets/robot/sprite-sheet-robot-with-props.png); }
+  63.2821% { background-image: url(/assets/robot/sprite-sheet-props-only.png); }
+}
+@keyframes propSwap4 {
+  0% { background-image: url(/assets/robot/sprite-sheet-props-only.png); }
+  64.6667% { background-image: url(/assets/robot/sprite-sheet-robot-with-props.png); }
+  79.1026% { background-image: url(/assets/robot/sprite-sheet-props-only.png); }
+}
+@keyframes propSwap5 {
+  0% { background-image: url(/assets/robot/sprite-sheet-props-only.png); }
+  80.4872% { background-image: url(/assets/robot/sprite-sheet-robot-with-props.png); }
+  94.9231% { background-image: url(/assets/robot/sprite-sheet-props-only.png); }
+}
+
+.walkingRobot {
+  position: absolute;
+  bottom: 0;
+  width: 83.8px;
+  height: 160.4px;
+  transform: translateX(-50%);
+  animation:
+    walkPosition 78s linear 20s infinite backwards,
+    walkVisibility 78s steps(1, end) 20s infinite backwards;
+}
+
+.walkingRobotSprite {
+  width: 100%;
+  height: 100%;
+  background-image: url(/assets/robot/sprite-sheet-forward-only.png);
+  background-repeat: no-repeat;
+  background-size: 335.2px 160.4px;
+  /* Sprite already faces right natively (an earlier mirror here was based on
+   * a mistaken facing-direction read and caused the reported "walking
+   * backwards" look) — no transform needed for its direction of travel. */
+  animation: legCycle 0.8s steps(1, end) 20s infinite backwards;
+}
+
+@keyframes walkPosition {
+  0% { left: -8%; }
+  1.3846% { left: 10%; }
+  15.8205% { left: 10%; }
+  17.2051% { left: 26%; }
+  31.6410% { left: 26%; }
+  33.0256% { left: 42%; }
+  47.4615% { left: 42%; }
+  48.8462% { left: 58%; }
+  63.2821% { left: 58%; }
+  64.6667% { left: 74%; }
+  79.1026% { left: 74%; }
+  80.4872% { left: 90%; }
+  94.9231% { left: 90%; }
+  96.3077% { left: 108%; }
+  100% { left: 108%; }
+}
+
+@keyframes walkVisibility {
+  0% { opacity: 1; }
+  1.3846% { opacity: 0; }
+  15.8205% { opacity: 1; }
+  17.2051% { opacity: 0; }
+  31.6410% { opacity: 1; }
+  33.0256% { opacity: 0; }
+  47.4615% { opacity: 1; }
+  48.8462% { opacity: 0; }
+  63.2821% { opacity: 1; }
+  64.6667% { opacity: 0; }
+  79.1026% { opacity: 1; }
+  80.4872% { opacity: 0; }
+  94.9231% { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+@keyframes legCycle {
+  /* Native frame order — matches the sprite's natural forward-right gait. */
+  0% { background-position-x: 0px; }
+  25% { background-position-x: -83.8px; }
+  50% { background-position-x: -167.6px; }
+  75% { background-position-x: -251.4px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .propSlot,
+  .walkingRobot,
+  .walkingRobotSprite {
+    animation: none;
+  }
+  .walkingRobot {
+    display: none;
+  }
+}
