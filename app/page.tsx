@@ -1,7 +1,7 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { Upload, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { EditorPreviewMock } from '@/components/home/EditorPreviewMock';
 import { RobotFooter } from '@/components/home/RobotFooter';
 
 const FEATURES = [
@@ -53,7 +53,14 @@ export default function Home() {
             </Button>
           </div>
           <div className="hidden justify-self-center lg:flex">
-            <EditorPreviewMock />
+            <Image
+              src="/backgrounds/ddas-hero.png"
+              alt="The DD Avatar Studio editor, customizing a robot avatar with a pirate hat"
+              width={1583}
+              height={711}
+              className="w-full max-w-xl rounded-2xl border shadow-2xl"
+              priority
+            />
           </div>
         </div>
       </div>
